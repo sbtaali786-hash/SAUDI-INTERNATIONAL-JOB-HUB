@@ -1,0 +1,6 @@
+{
+  "name": "JOB TODAY KSA",
+  "description": "Professional Saudi Arabia Job Search Portal - quickly search, discover, and apply for jobs in Riyadh, Jeddah, Dammam, and across Saudi Arabia.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
