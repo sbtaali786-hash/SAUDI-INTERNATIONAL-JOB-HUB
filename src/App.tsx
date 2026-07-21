@@ -371,6 +371,11 @@ export default function App() {
         )}
       </div>
 
+      {/* ADSTERRA CODE 2 BANNER CONTAINER */}
+      <div className="w-full flex justify-center items-center py-6 bg-slate-50 dark:bg-slate-950/20 border-t border-slate-100 dark:border-slate-900/60" id="adsterra-banner-wrapper">
+        <div id="container-2f57c3d6bde29efa1856776b8787dade"></div>
+      </div>
+
       {/* Footer Element */}
       <Footer onNavigate={handleNavigate} />
 
