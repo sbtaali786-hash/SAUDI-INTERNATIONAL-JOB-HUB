@@ -8,6 +8,7 @@ import ProfileView from './components/ProfileView';
 import SavedJobsView from './components/SavedJobsView';
 import AdminView from './components/AdminView';
 import SEO from './components/SEO';
+import { AdsterraBanner } from './components/AdsterraBanner';
 
 import { 
   getJobs, getCurrentUser, saveCurrentUser, getProfiles, saveProfiles, 
@@ -83,6 +84,29 @@ export default function App() {
     setInitialized(true);
 
     return () => window.removeEventListener('hashchange', handleHashRoute);
+  }, []);
+
+  // Dynamically load Adsterra scripts after DOM is fully constructed and painted
+  useEffect(() => {
+    // 1. Load Adsterra Code 1
+    const script1Id = 'adsterra-code-1';
+    if (!document.getElementById(script1Id)) {
+      const s1 = document.createElement('script');
+      s1.id = script1Id;
+      s1.src = 'https://undergocutlery.com/b2/93/b7/b293b79e8700e77358676a30e0d49d68.js';
+      s1.async = true;
+      document.body.appendChild(s1);
+    }
+
+    // 3. Load Adsterra Code 3
+    const script3Id = 'adsterra-code-3';
+    if (!document.getElementById(script3Id)) {
+      const s3 = document.createElement('script');
+      s3.id = script3Id;
+      s3.src = 'https://undergocutlery.com/f5/05/db/f505dbe2ad684a0a787e45e773c66e0f.js';
+      s3.async = true;
+      document.body.appendChild(s3);
+    }
   }, []);
 
   const handleNavigate = (view: string, params: any = {}) => {
@@ -372,9 +396,7 @@ export default function App() {
       </div>
 
       {/* ADSTERRA CODE 2 BANNER CONTAINER */}
-      <div className="w-full flex justify-center items-center py-6 bg-slate-50 dark:bg-slate-950/20 border-t border-slate-100 dark:border-slate-900/60" id="adsterra-banner-wrapper">
-        <div id="container-2f57c3d6bde29efa1856776b8787dade"></div>
-      </div>
+      <AdsterraBanner />
 
       {/* Footer Element */}
       <Footer onNavigate={handleNavigate} />
