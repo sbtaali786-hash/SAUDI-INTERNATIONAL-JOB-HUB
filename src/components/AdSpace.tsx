@@ -25,7 +25,10 @@ export default function AdSpace({ position, className = '' }: AdSpaceProps) {
     scripts.forEach((oldScript) => {
       const newScript = document.createElement('script');
       Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-      newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+      newScript.async = false;
+      if (oldScript.innerHTML) {
+        newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+      }
       if (oldScript.parentNode) {
         oldScript.parentNode.replaceChild(newScript, oldScript);
       }

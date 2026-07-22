@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Search, MapPin, Briefcase, Award, Sparkles, Filter, ChevronDown, RefreshCw, X, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { Search, MapPin, Briefcase, Award, Sparkles, Filter, ChevronDown, RefreshCw, X, ArrowUpDown } from 'lucide-react';
 import { Job, UserProfile } from '../types';
 import JobCard from './JobCard';
 import AdSpace from './AdSpace';
@@ -38,9 +38,9 @@ export default function JobsListingView({ jobs, onNavigate, currentUser, onToggl
   // Mobile drawer
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
+  // Infinite Scroll Batch Sizing
   const itemsPerPage = 9;
+  const [visibleCount, setVisibleCount] = useState(itemsPerPage);
 
   // Filter & Sort Logic
   const filteredJobs = useMemo(() => {
@@ -98,13 +98,37 @@ export default function JobsListingView({ jobs, onNavigate, currentUser, onToggl
     return result;
   }, [jobs, keyword, selectedLocation, selectedCategory, selectedJobType, selectedExperience, featuredOnly, urgentOnly, sortBy]);
 
-  // Paginated Results
-  const paginatedJobs = useMemo(() => {
-    const startIdx = (currentPage - 1) * itemsPerPage;
-    return filteredJobs.slice(startIdx, startIdx + itemsPerPage);
-  }, [filteredJobs, currentPage]);
+  // Reset visibleCount when filters change
+  useEffect(() => {
+    setVisibleCount(itemsPerPage);
+  }, [keyword, selectedLocation, selectedCategory, selectedJobType, selectedExperience, featuredOnly, urgentOnly, sortBy]);
 
-  const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
+  // Visible Jobs Slice for Infinite Scroll
+  const visibleJobs = useMemo(() => {
+    return filteredJobs.slice(0, visibleCount);
+  }, [filteredJobs, visibleCount]);
+
+  const hasMore = visibleCount < filteredJobs.length;
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  // Auto-load next batch when scrolling near bottom
+  useEffect(() => {
+    if (!hasMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => Math.min(prev + itemsPerPage, filteredJobs.length));
+        }
+      },
+      { rootMargin: '300px' }
+    );
+
+    const el = sentinelRef.current;
+    if (el) observer.observe(el);
+    return () => {
+      if (el) observer.unobserve(el);
+    };
+  }, [hasMore, filteredJobs.length]);
 
   const resetAllFilters = () => {
     setKeyword('');
@@ -115,12 +139,7 @@ export default function JobsListingView({ jobs, onNavigate, currentUser, onToggl
     setSelectedSalary('');
     setFeaturedOnly(false);
     setUrgentOnly(false);
-    setCurrentPage(1);
-  };
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setVisibleCount(itemsPerPage);
   };
 
   const activeFiltersCount = useMemo(() => {
@@ -325,7 +344,7 @@ export default function JobsListingView({ jobs, onNavigate, currentUser, onToggl
             </div>
 
             {/* Grid Listing */}
-            {paginatedJobs.length === 0 ? (
+            {visibleJobs.length === 0 ? (
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-16 text-center">
                 <Briefcase className="w-16 h-16 text-slate-300 dark:text-slate-700 mx-auto mb-4" />
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No Matching Positions Found</h3>
@@ -340,70 +359,52 @@ export default function JobsListingView({ jobs, onNavigate, currentUser, onToggl
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {paginatedJobs.map((job) => (
-                  <JobCard
-                    key={job.id}
-                    job={job}
-                    onViewDetails={(slug) => onNavigate('job-detail', { slug })}
-                    isSaved={currentUser?.savedJobs.includes(job.id) || false}
-                    onToggleSave={onToggleSaveJob}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Dynamic Ads inside listing */}
-            {filteredJobs.length > 3 && (
-              <div className="mt-8">
-                <AdSpace position="between_cards" />
-              </div>
-            )}
-
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="flex justify-between items-center border-t border-slate-200 dark:border-slate-800/80 mt-12 pt-6">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="flex items-center space-x-1 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900 disabled:opacity-50 text-slate-700 dark:text-slate-300 disabled:pointer-events-none px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  <span>Previous</span>
-                </button>
-
-                <div className="hidden sm:flex items-center gap-1.5">
-                  {Array.from({ length: totalPages }).map((_, i) => {
-                    const pageNum = i + 1;
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => handlePageChange(pageNum)}
-                        className={`w-9 h-9 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                          currentPage === pageNum
-                            ? 'bg-emerald-600 text-white'
-                            : 'border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300'
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
+              <>
+                {/* First batch of jobs (up to 3) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {visibleJobs.slice(0, 3).map((job) => (
+                    <JobCard
+                      key={job.id}
+                      job={job}
+                      onViewDetails={(slug) => onNavigate('job-detail', { slug })}
+                      isSaved={currentUser?.savedJobs.includes(job.id) || false}
+                      onToggleSave={onToggleSaveJob}
+                    />
+                  ))}
                 </div>
 
-                <div className="sm:hidden text-xs text-slate-500 font-bold">
-                  Page {currentPage} of {totalPages}
-                </div>
+                {/* 320x50 Adsterra Banner Ad placement between job cards */}
+                {visibleJobs.length > 3 && (
+                  <div className="my-8 flex justify-center items-center">
+                    <AdSpace position="between_cards" />
+                  </div>
+                )}
 
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="flex items-center space-x-1 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900 disabled:opacity-50 text-slate-700 dark:text-slate-300 disabled:pointer-events-none px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                >
-                  <span>Next</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
+                {/* Remaining visible jobs (4+) */}
+                {visibleJobs.length > 3 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {visibleJobs.slice(3).map((job) => (
+                      <JobCard
+                        key={job.id}
+                        job={job}
+                        onViewDetails={(slug) => onNavigate('job-detail', { slug })}
+                        isSaved={currentUser?.savedJobs.includes(job.id) || false}
+                        onToggleSave={onToggleSaveJob}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Infinite Scroll Sentinel / Loading Indicator */}
+                {hasMore && (
+                  <div ref={sentinelRef} className="py-8 flex justify-center items-center">
+                    <div className="flex items-center space-x-2 text-slate-500 text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-4 py-2 rounded-xl shadow-xs">
+                      <RefreshCw className="w-4 h-4 animate-spin text-emerald-500" />
+                      <span>Loading more vacancies...</span>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
           </main>

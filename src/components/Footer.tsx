@@ -141,7 +141,15 @@ export default function Footer({ onNavigate }: FooterProps) {
             <span>•</span>
             <a href="#app-header" className="hover:text-emerald-400 transition-colors">Terms of Service</a>
             <span>•</span>
-            <span className="text-slate-600">Google AdSense Ready</span>
+            <a 
+              href="https://undergocutlery.com/tdwa66nd4?key=20afd1d34bc10e47a1a3620c32b464e7" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="hover:text-emerald-400 transition-colors flex items-center gap-1"
+            >
+              <span>Partner Offers</span>
+              <ExternalLink className="w-3 h-3 text-emerald-500" />
+            </a>
             <span>•</span>
             <button
               onClick={() => onNavigate('admin')}

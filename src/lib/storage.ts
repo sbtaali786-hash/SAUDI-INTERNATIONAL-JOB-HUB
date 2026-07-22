@@ -25,7 +25,7 @@ const DEFAULT_ADS: AdPlacement[] = [
     id: 'between_cards',
     label: 'Between Latest Job Cards',
     enabled: true,
-    code: '<div class="bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-6 text-center"><span class="text-[9px] text-slate-400 uppercase font-bold tracking-widest block mb-1">Sponsored Ad</span><p class="text-slate-700 dark:text-slate-300 font-medium text-sm">Need certified safety courses? Enroll in Saudi Safety Institute NEBOSH batch.</p><p class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-1">Special 15% discount code: JOBTODAY15</p></div>'
+    code: '<script>\n  atOptions = {\n    \'key\' : \'c90bebfef6a8d5e4ca7587c8bf25eac9\',\n    \'format\' : \'iframe\',\n    \'height\' : 50,\n    \'width\' : 320,\n    \'params\' : {}\n  };\n</script>\n<script src="https://undergocutlery.com/c90bebfef6a8d5e4ca7587c8bf25eac9/invoke.js"></script>'
   },
   {
     id: 'homepage_middle',
@@ -200,7 +200,16 @@ export function setAdminLoggedIn(loggedIn: boolean) {
 export function getAdPlacements(): AdPlacement[] {
   initStorage();
   const data = localStorage.getItem(AD_PLACEMENTS_KEY);
-  return data ? JSON.parse(data) : DEFAULT_ADS;
+  let ads: AdPlacement[] = data ? JSON.parse(data) : DEFAULT_ADS;
+  
+  // Replace old static promotional box if cached in localStorage
+  const between = ads.find(a => a.id === 'between_cards');
+  if (between && (between.code.includes('Saudi Safety Institute') || between.code.includes('NEBOSH') || between.code.includes('Sponsored Ad'))) {
+    between.code = '<script>\n  atOptions = {\n    \'key\' : \'c90bebfef6a8d5e4ca7587c8bf25eac9\',\n    \'format\' : \'iframe\',\n    \'height\' : 50,\n    \'width\' : 320,\n    \'params\' : {}\n  };\n</script>\n<script src="https://undergocutlery.com/c90bebfef6a8d5e4ca7587c8bf25eac9/invoke.js"></script>';
+    saveAdPlacements(ads);
+  }
+  
+  return ads;
 }
 
 export function saveAdPlacements(ads: AdPlacement[]) {
